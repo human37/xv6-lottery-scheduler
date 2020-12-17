@@ -15,12 +15,12 @@ search path, you can run "make qemu".
 
 # Testing the New Lottery Scheduler
 for the default round-robin scheduler:
-``make qemu`` 
+```make qemu``` 
 
 for lottery scheduler and equal ticket number assignment:
-``make qemu SCHEDPOLICY=RANDOM``
+```make qemu SCHEDPOLICY=RANDOM```
 
 for lottery scheduler and random ticket number assignment: 
-``make qemu SCHEDPOLICY=RANDOM RANDOMTICKETNUMBER=RANDOMTICKETTRUE``
+```make qemu SCHEDPOLICY=RANDOM RANDOMTICKETNUMBER=RANDOMTICKETTRUE```
 
 
