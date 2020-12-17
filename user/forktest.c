@@ -51,6 +51,13 @@ forktest(void)
 int
 main(void)
 {
+  // #ifdef DEFAULT
+  //   print("default sched\n");
+  // #else
+  // #ifdef RANDOM
+  //   print("random sched\n");
+  // #endif
+  // #endif
   forktest();
   exit(0);
 }

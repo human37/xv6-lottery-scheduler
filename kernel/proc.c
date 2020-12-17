@@ -21,6 +21,8 @@ static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
 
+int DEFAULT_TICKETS = 1; //used for the random sched
+
 // initialize the proc table at boot time.
 void
 procinit(void)
@@ -42,6 +44,16 @@ procinit(void)
       p->kstack = va;
   }
   kvminithart();
+}
+
+// my pseudo-random number generator
+unsigned short lfsr = 0xACE1u;
+unsigned bit;
+unsigned 
+random() 
+{
+    bit  = ((lfsr >> 0) ^ (lfsr >> 2) ^ (lfsr >> 3) ^ (lfsr >> 5) ) & 1;
+    return lfsr =  (lfsr >> 1) | (bit << 15);
 }
 
 // Must be called with interrupts disabled,
@@ -230,6 +242,18 @@ userinit(void)
 
   p->state = RUNNABLE;
 
+  #ifdef RANDOMTICKETTRUE
+    if (random() % 2) {
+      //printf("%d", random() % 2);
+      DEFAULT_TICKETS = 100;
+    } else {
+      DEFAULT_TICKETS = 1;
+    }
+  #else
+  #endif
+
+  p->tickets = DEFAULT_TICKETS; // used for the RANDOM scheduler
+
   release(&p->lock);
 }
 
@@ -279,6 +303,18 @@ fork(void)
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
+
+  #ifdef RANDOMTICKETTRUE
+    if (random() % 2) {
+      //printf("%d", random() % 2);
+      DEFAULT_TICKETS = 100;
+    } else {
+      DEFAULT_TICKETS = 1;
+    }
+  #else
+  #endif
+
+  np->tickets = DEFAULT_TICKETS; // used in random sched
 
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
@@ -446,6 +482,36 @@ wait(uint64 addr)
   }
 }
 
+// returns the total number of tickets used for the random scheduler
+int
+totalTickets(void) {
+	struct proc *p;
+	int total = 0;
+	for (p = proc; p < &proc[NPROC]; p++) {
+		if (p->state == RUNNABLE) {
+			total += p->tickets;
+		}
+	}
+	return total;
+}
+
+// allows you to change the number of tickets a process has
+int
+changeTickets(int tickets)
+{
+  int pid = myproc()->pid;
+  struct proc *p = 0;
+  acquire(&p->lock);
+  for(p = proc; p < &proc[NPROC]; p++) {
+    if(p->pid == pid) {
+        p->tickets = tickets;
+        break;
+    }
+  }
+  release(&p->lock);
+  return pid;
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -466,18 +532,49 @@ scheduler(void)
 
     for(p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
+        #ifdef DEFAULT
+          // do nothing
+        #else
+
+        #ifdef RANDOM
+          // currently every process has only three tickets
+          // in the future I will make a method to change their tickets
+          // this method allows a process with a greater number of tickets
+          // a higher chance of drawing 0 or negative in order to execute
+            if(p->state != RUNNABLE) {
+              release(&p->lock);
+              continue;
+            }
+
+            int total_tickets = totalTickets();
+            int draw = -1;
+            if(total_tickets > 0 || draw <= 0) {
+              draw = random() % total_tickets;  
+            }     
+            draw = draw - p->tickets;
+            if(draw >= 0) {
+              release(&p->lock);
+              continue;
+            }
+
+        #else
+
+        #endif
+        #endif
+
+        if(p->state == RUNNABLE) {
+          // Switch to chosen process.  It is the process's job
+          // to release its lock and then reacquire it
+          // before jumping back to us.
+          p->state = RUNNING;
+          c->proc = p;
+          swtch(&c->context, &p->context);
+
+          // Process is done running for now.
+          // It should have changed its p->state before coming back.
+          c->proc = 0;
+        }
       release(&p->lock);
     }
   }

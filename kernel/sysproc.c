@@ -95,3 +95,11 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// randomly chooses one process to add 10 tickets
+uint64
+sys_sched(void)
+{
+  changeTickets(10);
+  return 0;
+}
