@@ -14,13 +14,16 @@ riscv64-softmmu. Once they are installed, and in your shell
 search path, you can run "make qemu".
 
 # Testing the New Lottery Scheduler
-for the default round-robin scheduler:
-```make qemu``` 
+For the default round-robin scheduler:
 
-for lottery scheduler and equal ticket number assignment:
-```make qemu SCHEDPOLICY=RANDOM```
+    $ make qemu 
 
-for lottery scheduler and random ticket number assignment: 
-```make qemu SCHEDPOLICY=RANDOM RANDOMTICKETNUMBER=RANDOMTICKETTRUE```
+For lottery scheduler and equal ticket number assignment:
+
+    $ make qemu SCHEDPOLICY=RANDOM
+
+For lottery scheduler and random ticket number assignment: 
+
+    $ make qemu SCHEDPOLICY=RANDOM RANDOMTICKETNUMBER=RANDOMTICKETTRUE
 
 
